@@ -1,0 +1,48 @@
+---
+title: "Los_Pedros_Spectus"
+author: "Bijan GURUNG"
+date: "2023-03-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Extracting xy-coordinates of a polygon file
+
+
+```{r}
+library(sf)
+```
+
+## Polygon file or a shapefile
+
+Los Padres National Forest shapefile. 
+
+```{r}
+boundary <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres.shp")
+
+```
+
+Details about the shapefile using sf package. 
+
+```{r, echo = FALSE}
+st_geometry_type(boundary)
+st_crs(boundary)
+st_bbox(boundary)
+boundary
+```
+Convert the polygon to vertices or points and then save the xy-coordinates as a .csv file. The points can be used in geospatial analysis with other layers and platform. However, the format of xy-coordinates can be a bit tricky and confusing. It could take time to convert the format. So, I recommend to use the ArcGIS Pro geoprocessing tool, which is quite straight forward and saves a lot of your time.  
+
+```{r}
+st_coordinates(boundary)
+
+st_cast(boundary, "POINT")
+
+pts <- st_cast(boundary,"POINT")
+pts
+
+st_write(pts,"xy_pts.csv",layer_options="GEOMETRY=AS_XY")
+```
+
