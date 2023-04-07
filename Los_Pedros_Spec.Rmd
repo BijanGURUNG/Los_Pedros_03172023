@@ -8,8 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 ```
 
-## Extracting xy-coordinates of a shape file (polygon)
-
+## Extracting geometry of a POLYGON (xy-coordinates) from MULTIPOLYGON in x,y columns format or 
+## as a list (nested list) of lat-long so as to use in python (pyDeck)
 
 ```{r}
 library(sf)
@@ -19,10 +19,11 @@ library(sf)
 
 As an example: Los Padres National Forest (shapefile). 
 
-### Method 1: 
-Details about the shapefile can be read by using the functions of sf package. The file is a MULTIPOLYGON shapefile and the geometry is written in a different format in lieu of DegreesDecimal, i.e. -13441650 4224361. The MULTIPOLYGON geometry can be stored either in .csv or .txt format by using the following commands. I recommend using the .txt format to save the complex geometry of the MULTIPOLYGON. However, the geometry is not in the right format, so we need to convert them to DegreeDecimal for x,y coordinates. 
+### Method 1:
+The following command can be used to convert the vertices of the MULTIPOLYGON to  x,y coordinates and save them in .csv format so as to use in other interfaces and packages (pyDeck). But there are two issues: 1) format of geometry and so, the x,y coordinates could be in the format that is not readable in python. This can be solved by converting the projection system to WGS 1984 in ArcGIS Pro beforehand. 2) the shapefile can be a MULTIPOLYGON file and it is nearly impossible to separate the x,y coordinates for each polygon from the .csv file. This method is good to obtain x,y coordinates in two columns in a .csv format. 
 
-```{r, echo = FALSE}
+
+```{r}
 boundary <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres.shp")
 st_geometry_type(boundary)
 st_crs(boundary)
@@ -30,16 +31,6 @@ st_bbox(boundary)
 boundary
 boundary[0]
 
-# as.data.frame(boundary)
-write.csv(boundary[0], file = "boundary.csv")
-write.table(boundary[0], file = "boundary.txt", sep = "\t", row.names = FALSE)
-```
-
-
-### Method 2:
-The following command can be used to convert the vertices of the MULTIPOLYGON to  x,y coordinates and save them in .csv format. As said earlier, the format of geometry and hence, the x,y coordinates can be a bit tricky. This format is not read by the Jupyter notebook. And the shapefile is MULTIPOLYGON file and needs a way to separate the coordinates of different POLYGONS. 
-
-```{r}
 st_coordinates(boundary)
 
 st_cast(boundary, "POINT")
@@ -50,57 +41,12 @@ pts
 st_write(pts,"xy_pts.csv",layer_options="GEOMETRY=AS_XY")
 ```
 
-### Method 3: 
-We can directly read the shapefile and create a dataframe of long-lat by the following command. However, as said earlier, long-lat are in a different format and we have a MULTIPOLYGON file. 
 
-```{r}
-library(sf)
-library(tidyr)
-library(dplyr)
+### Method 2:
+I recommend using ArcGIS Pro to carry out some preliminary work for the MULTIPOLYGON file. The projection system can be converted to WGS 1984 so that geometry can be read in python (pyDeck). Consider only one POLYGON from the MULTIPOLYGON. Convert the POLYGON to POINTS by using "Vertices to Points" geoprocessing tool. Create new fields as long and lat, and apply "Calculate geometry" to fill the columns of longitude and latitude of that particular POLYGON file. But, check the format of the coordinates (Decimal Degrees) before populating the two columns. The the table of the feature class geodatabase file can be exported to .dbf format. Open Excel and open the .dbf file. Once you open the .dbf file, save it in .csv format. Now, the long-lat columns are in the proper format, i.e. Decimal Degrees. 
 
-los_pad_pts <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres1.shp")
+Once you run the followiwng command, the output is in string or character format. So, simply highlight and copy them. Use "OpenStreetMap WKT Playground" (https://clydedacruz.github.io/openstreetmap-wkt-playground/) to test the coordinates. Once the POLYGON map is shown in the "OpenStreetMap WKT Playground", copy them to use in the Jupyter notebook commands. This can be used in pyDeck. 
 
-los_pad_pts_coords <- los_pad_pts %>% 
-  sf::st_coordinates() %>% 
-  as.data.frame() %>% 
-  dplyr::select(X,Y) %>% 
-  dplyr::rename(long = X, lat = Y)
-
-head(los_pad_pts_coords)
-summary(los_pad_pts_coords)
-class(los_pad_pts_coords)
-
-# The following commands are used to convert the units of coordinates from deg_min_sec to dec_deg. 
-# This does not work with -13441650 4224361, hence the commands are commented out. 
-# install.packages("measurements") 
-# library(measurements)
-# 
-# lat <- conv_unit('-13441650', from = "deg_min_sec", to = "dec_deg")
-# long <- conv_unit(los_pad_pts_coords$long , from = "deg_min_sec", to = "dec_deg")
-# 
-# print(c(lat, long))
-```
-
-This is same as above, just that the MULTIPOLYGON is a set of POINTFILES now. We used ArcGIS Pro and its geoprocessing tool (Vertices to Points) to convert the MULTIPOLYGON to POINTFILES before reading in R command. We created a dataframe of long-lat, but the issue is the same as above, i.e. the format of geometry and the separation of coordinates for each POLYGON.
-```{r}
-los_pad_pts <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres_VertToPts3.shp")
-
-los_pad_pts_coords <- los_pad_pts %>% 
-  sf::st_coordinates() %>% 
-  as.data.frame() %>% 
-  dplyr::select(X,Y) %>% 
-  dplyr::rename(long = X, lat = Y)
-
-head(los_pad_pts_coords)
-summary(los_pad_pts_coords)
-class(los_pad_pts_coords)
-```
-
-
-### Method 4:
-I recommend using ArcGIS Pro to carry out some preliminary work for the MULTIPOLYGON file. First, consider only one POLYGON from the MULTIPOLYGON. Convert the POLYGON to POINTS by using "Vertices to Points" geoprocessing tool. Create new fields as long and lat, and apply "Calculate geometry" to fill the columns of longitude and latitude of that particular POLYGON file. But, check the format of the coordinates (Decimal Degrees) before populating the two columns. The the table of the feature class geodatabase file can be exported to .dbf format. Open Excel and open the .dbf file. Once you open the .dbf file, save it in .csv format. Now, the long-lat columns are in the proper format, i.e. Decimal Degrees. 
-
-The output is in string or character format. So, simply highlight and copy them. Use "OpenStreetMap WKT Playground" (https://clydedacruz.github.io/openstreetmap-wkt-playground/) to test the coordinates. Once the POLYGON map is shown in the "OpenStreetMap WKT Playground", copy them to use in the Jupyter notebook commands.  
 ```{r}
 los_pad_pts_P1 = read.csv("D:/CA_Forest_Project/Los_Padres/Los_Padres_VertToPts_P1_Table.csv")
 
@@ -125,6 +71,66 @@ head(los_pad_pts_P2a)
 
 do.call(paste, c(los_pad_pts_P2a, list(collapse=", ")))
 ```
+
+
+### Method 3: 
+The following command can be used to read shapefile directly without converting to vertices. In ArcGIS Pro: 1) convert the projection system to WGS 1984. 2) Extract one POLYGON (shapefile) from the MULTIPOLYGON shape file. We can directly read the shapefile and create a dataframe of long-lat by the following command.  The above commands can be used in the dataframe to create a list of lat-long that can be applied in python (pyDeck). 
+
+```{r}
+library(sf)
+library(tidyr)
+library(dplyr)
+
+los_pad_pts <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres_WGS1984_P1.shp")
+
+los_pad_pts_coords <- los_pad_pts %>% 
+  sf::st_coordinates() %>% 
+  as.data.frame() %>% 
+  dplyr::select(X,Y) %>% 
+  dplyr::rename(long = X, lat = Y)
+
+head(los_pad_pts_coords)
+summary(los_pad_pts_coords)
+class(los_pad_pts_coords)
+```
+The command in Method #2 can be applied to the above dataframe to obtain the list of x,y coordinates. 
+
+
+The following command is as above, just that the MULTIPOLYGON is a set of POINTFILES now. We used ArcGIS Pro and its geoprocessing tool (Vertices to Points) to convert the MULTIPOLYGON to POINTFILES before reading in R command. We created a dataframe of long-lat. As above, the two issues are, 1) format of geometry and 2) the separation of coordinates for each POLYGON.
+
+```{r}
+los_pad_pts <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres_VertToPts3.shp")
+
+los_pad_pts_coords <- los_pad_pts %>% 
+  sf::st_coordinates() %>% 
+  as.data.frame() %>% 
+  dplyr::select(X,Y) %>% 
+  dplyr::rename(long = X, lat = Y)
+
+head(los_pad_pts_coords)
+summary(los_pad_pts_coords)
+class(los_pad_pts_coords)
+```
+
+
+### Method 4: 
+The following command can also be used to read POLYGON shapefile directly. The geometry should be in right format. The geometry or x,y coordinates can be saved as list in .txt format. The geometry will be in Decimal Degreee if the shapefile is projected to WGS 1984. The list (also nested list) of coordinates would be harder to separate in case of MULTIPOLYGON. Besides, the list is saved in the format that cannot be used in python (pyDeck). So, this method is not recommended.  
+
+
+```{r, echo = FALSE}
+boundary <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres.shp")
+st_geometry_type(boundary)
+st_crs(boundary)
+st_bbox(boundary)
+boundary
+boundary[0]
+
+# as.data.frame(boundary)
+write.csv(boundary[0], file = "boundary.csv")
+write.table(boundary[0], file = "boundary.txt", sep = "\t", row.names = FALSE)
+```  
+
+
 
 Extra Notes: The following codes are for my own use, so you may not need them.
 ```{r}
@@ -172,6 +178,9 @@ los_pad_pts_A3 <- as.double(unlist(strsplit(los_pad_pts_A2, " ")))
 class(los_pad_pts_A3)
 los_pad_pts_A3
 head(los_pad_pts_A3)
+```
+```{r}
+st_multipolygon("D:/CA_Forest_Project/Los_Padres/Los_Padres.shp")
 ```
 
 
