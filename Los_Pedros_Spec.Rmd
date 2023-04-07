@@ -96,7 +96,7 @@ class(los_pad_pts_coords)
 The command in Method #2 can be applied to the above dataframe to obtain the list of x,y coordinates which can be later used in pyDeck.  
 
 
-The following command is as above, just that the MULTIPOLYGON is a set of POINTFILES now. We used ArcGIS Pro and its geoprocessing tool (Vertices to Points) to convert the MULTIPOLYGON to POINTFILES before reading in R command. We created a dataframe of long-lat. As above, the two issues are, 1) format of geometry and 2) the separation of coordinates for each POLYGON.
+The following command is same as above, just that the MULTIPOLYGON is a set of POINTFILES now. We used ArcGIS Pro and its geoprocessing tool (Vertices to Points) to convert the MULTIPOLYGON to POINTFILES before reading in R command. We created a dataframe of long-lat. As above, the two issues are, 1) format of geometry and 2) the separation of coordinates for each POLYGON.
 
 ```{r}
 los_pad_pts <- st_read("D:/CA_Forest_Project/Los_Padres/Los_Padres_VertToPts3.shp")
